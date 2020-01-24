@@ -1,0 +1,47 @@
+# during to work, all containers have internal lan, and have DNS names like their names. So you can to connect to container directly by his DNS name
+# So you can connect to php container to port 9000 from another container with "php:9000" (see nginx site config for example) because this container has DNS name "php"
+version: "3.7"
+
+services:
+
+
+  # nginx service configuration. Use "alpine" versions because it has very small volumes
+  # WARNING: you can't use apt-get commands in alpine containers, so use it only if you want fully standard functionality
+  nginx_php:
+      container_name: ${APPNAME}_nginx_php
+      build:
+          context: ./nginx_php/
+      working_dir: ${SITE_WORKDIR_IN_CONTAINER}
+      ports:
+      - 80:8080 #host:container
+      volumes:
+      - ./..:${SITE_WORKDIR_IN_CONTAINER}
+      - ./nginx_php/site.conf:/etc/nginx/sites-enabled/site.conf # local site configuration
+      links:
+      - db
+      - redis
+      restart: always
+
+  # you can connect to mysql from php code or from another container with "db:3306" because this container has DNS name "db"
+  # you can connect to mysql from localhost (with programs like SQL Workbench) with localhost:3306
+  db:
+    image: mysql:${MYSQL_VERSION}
+    container_name: ${APPNAME}_mysql
+    ports:
+    - 3306:3306 #host:container
+    volumes:
+    - ./database/db_file:/var/lib/mysql
+    working_dir: ${SITE_WORKDIR_IN_CONTAINER}
+    environment:
+    - MYSQL_ROOT_PASSWORD=${SQL_ROOT_PASSWORD}
+    - MYSQL_DATABASE=${SQL_DATABASE}
+    - MYSQL_USER=${SQL_USER}
+    - MYSQL_PASSWORD=${SQL_PASSWORD}
+    restart: always
+
+  redis:
+    container_name: ${APPNAME}_redis
+    image: redis:5-alpine
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    restart: always

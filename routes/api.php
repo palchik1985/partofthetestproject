@@ -1,0 +1,3 @@
+<?php
+
+// deleted the code
